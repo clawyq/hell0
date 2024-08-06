@@ -14,7 +14,7 @@ impl fmt::Display for PoolCreationError {
 
 type Job = Box<dyn FnOnce() + Send + 'static>;
 
-struct Worker {
+pub struct Worker {
     id: u32,
     thread: Option<thread::JoinHandle<()>>,
 }
@@ -50,6 +50,13 @@ pub struct ThreadPool {
 }
 
 impl ThreadPool {
+    pub fn workers(&self) -> &Vec<Worker> {
+        &self.workers
+    }
+
+    pub fn sender(&self) -> &mpsc::Sender<Job> {
+        self.sender.as_ref().unwrap()
+    }
     /// Creates a new ThreadPool with the specified capacity.
     ///
     /// # Arguments
@@ -81,7 +88,7 @@ impl ThreadPool {
     where 
         F: FnOnce() + Send + 'static
     {
-        self.sender.as_ref().unwrap().send(Box::new(f)).unwrap();
+        self.sender().send(Box::new(f)).unwrap();
     }
 }
 
