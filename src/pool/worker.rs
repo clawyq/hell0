@@ -32,3 +32,18 @@ impl Worker {
 }
 
 pub type Job = Box<dyn FnOnce() + Send + 'static>;
+
+#[cfg(test)]
+mod tests {
+    use crate::pool::worker::Worker;
+    use std::sync::{Arc, Mutex, mpsc};
+
+    #[test]
+    fn test_worker_creation() {
+        let id = 2;
+        let (_, rx) = mpsc::channel();
+        let receiver = Arc::new(Mutex::new(rx));
+        let worker = Worker::new(id, receiver);
+        assert_eq!(worker.id, id);
+    }
+}

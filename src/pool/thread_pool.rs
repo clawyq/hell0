@@ -70,3 +70,29 @@ impl Drop for ThreadPool {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::sync::mpsc;
+    use crate::pool::thread_pool::ThreadPool;
+
+    #[test]
+    fn test_thread_pool_creation_with_capacity() {
+        let pool = ThreadPool::build(4).unwrap();
+        assert_eq!(pool.workers().len(), 4);
+    }
+
+    #[test]
+    fn test_thread_pool_creation_error() {
+        let pool_creation_result = ThreadPool::build(0);
+        assert!(matches!(pool_creation_result, Err(PoolCreationError)));
+    }
+
+    #[test]
+    fn test_thread_pool_execution() {
+        let pool = ThreadPool::build(4).unwrap();
+        let (tx, rx) = mpsc::channel();
+        pool.execute(move || { tx.send("hello").unwrap(); });
+        assert_eq!(rx.recv().unwrap(), "hello");
+    }
+}
