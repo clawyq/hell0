@@ -5,7 +5,7 @@ use std::{
     thread,
     time::Duration,
 };
-use hell0::ThreadPool;
+use hell0::pool::thread_pool::ThreadPool;
 
 fn main() {
     const MAX_WORKERS: u32 = 5;
