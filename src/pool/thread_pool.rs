@@ -10,6 +10,7 @@ impl fmt::Display for PoolCreationError {
         write!(f, "Pool cannot be created with no threads")
     }
 }
+impl std::error::Error for PoolCreationError {}
 
 pub struct ThreadPool {
     workers: Vec<Worker>,
@@ -21,8 +22,8 @@ impl ThreadPool {
         &self.workers
     }
 
-    pub fn sender(&self) -> &mpsc::Sender<Job> {
-        self.sender.as_ref().unwrap()
+    pub fn sender(&self) -> Result<&mpsc::Sender<Job>, &'static str> {
+        self.sender.as_ref().ok_or("Unable to get reference to sender.")
     }
     /// Creates a new ThreadPool with the specified capacity.
     ///
@@ -55,7 +56,16 @@ impl ThreadPool {
     where 
         F: FnOnce() + Send + 'static
     {
-        self.sender().send(Box::new(f)).unwrap();
+        match self.sender() {
+            Ok(sender) => {
+                if let Err(e) = sender.send(Box::new(f)) {
+                    eprintln!("Sender failed to send job to threadpool: {e}");
+                }
+            },
+            Err(e) => {
+                eprintln!("Failed to get sender: {}", e);
+            }
+        }
     }
 }
 
@@ -65,7 +75,9 @@ impl Drop for ThreadPool {
         for worker in &mut self.workers {
             println!("byebye -love, Worker {}", worker.id);
             if let Some(thread) = worker.thread.take() {
-                thread.join().unwrap();
+                if let Err(e) = thread.join() {
+                    eprintln!("Worker {} failed to join: {:?}", worker.id, e);
+                }
             }
         }
     }

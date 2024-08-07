@@ -15,7 +15,13 @@ impl Worker {
     /// * `receiver` - shared receiver for receiving jobs
     pub fn new(id: u32, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Self {
         let thread = thread::spawn(move || loop {
-            let payload = receiver.lock().unwrap().recv();
+            let payload = match receiver.lock() {
+                Ok(guard) => guard.recv(),
+                Err(poisoned) => {
+                    eprintln!("Worker {id}: {poisoned}");
+                    break;
+                }
+            };
             match payload {
                 Ok(job) => {
                     println!("Worker {id} is on it!!");
